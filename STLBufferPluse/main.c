@@ -18,5 +18,6 @@ int main(int argc, const char * argv[]) {
     printf("Hello, World!\n");
     printf("create_result: %i \n", create_result);
     printf("destroy_result: %i \n", destroy_result);
+    mm.create_object("o9");
     return 0;
 }
