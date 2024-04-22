@@ -12,7 +12,7 @@
 
 create
 destroy
-create_object          //  создание объекта имя для блока или для объекта?
+create_object          //  создание объекта имя для блока или для объекта проставлять или для обоих?
 destroy_object
 print_objects
 link
