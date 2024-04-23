@@ -43,6 +43,19 @@ My_List* create_list()
     return list;
 }
 
+My_List* create_list_v2(const char *name)
+{
+    Block *headBlock = (Block*)malloc(sizeof(Block));
+    headBlock->name = strdup(name);
+    headBlock->next = NULL;
+    headBlock->prev = NULL;
+    
+    My_List *list = (My_List*)malloc(sizeof(My_List));
+    list->head = headBlock;
+    list->tail = NULL;
+    return list;
+}
+
 void delete_list(My_List *list)
 {
     if (list == NULL) {
@@ -169,7 +182,7 @@ int create_object(const char *name)
         if (garbage_collector[i]->free == 1 && duplicate(name) == 0)
         {
             garbage_collector[i]->name = strdup(name);
-            garbage_collector[i]->links = create_list();
+            garbage_collector[i]->links = create_list_v2(name);
             garbage_collector[i]->free = 0;
             return 1;
         }
@@ -191,7 +204,7 @@ int destroy_object(const char *name)
                 garbage_collector[i]->free = 1;
                 return 1;
             }
-                // надо ли это делать ??? 
+                // надо ли это делать ???
 //            if (garbage_collector[i]->links != NULL)
 //            {
 //                Block *head = garbage_collector[i]->links->head;
