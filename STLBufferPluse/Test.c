@@ -9,89 +9,22 @@
 #include <stdlib.h>
 #include "Test.h"
 
-typedef struct Block Block;
+typedef struct Object Object;
 
-struct Block
+struct Object
 {
     char* name;
-    Block* next;
-    Block* prev;
-}typedef Block;
-
-struct My_List
-{
-    Block* head;
-    Block* tail;
-}typedef My_List;
-
-struct Obj
-{
-    char* name;
-    int free;
-    int root;
-    My_List* links;
-}typedef Obj;
-
-Obj** garbage_collector = NULL;
-int gb_size = 0;
-
-My_List* create_list()
-{
-    My_List* list = (My_List*)malloc(sizeof(My_List));
-    list->head = NULL;
-    list->tail = NULL;
-    return list;
-}
-
-My_List* create_list_v2(const char *name)
-{
-    Block *headBlock = (Block*)malloc(sizeof(Block));
-    headBlock->name = strdup(name);
-    headBlock->next = NULL;
-    headBlock->prev = NULL;
+    int is_live;
+    int is_root;
+    Object* next;
+    Object* prev;
     
-    My_List *list = (My_List*)malloc(sizeof(My_List));
-    list->head = headBlock;
-    list->tail = NULL;
-    return list;
-}
+    Object* head; // ???
+    Object* tail; // ???
+}typedef Object;
 
-void delete_list(My_List *list)
-{
-    if (list == NULL) {
-        return;
-    }
-    Block *head = list->head;
-    while (head)
-    {
-        Block *next = head->next;
-        free(head->name);
-        head->name = NULL;
-        head->next = NULL;
-        head->prev = NULL;
-        free(head);
-        head = next;
-    }
-    free(list);
-    list = NULL;
-}
-
-void Add_Block(My_List* list, const char* name)
-{
-    Block* item = (Block*)malloc(sizeof(Block));
-    item->name = strdup(name);
-    item->next = NULL;
-    item->prev = list->tail;
-    if (list->tail)
-    {
-        list->tail->next = item;
-    }
-    list->tail = item;
-    if (!list->head)
-    {
-        list->head = item;
-    }
-}
+Object** garbage_collector = NULL;
+int gb_size = 0;
 
 int cmp(const void *a, const void *b) {
     return strcmp(*(const char **)a, *(const char **)b);
@@ -101,7 +34,8 @@ int duplicate(const char *name)
 {
     for (int i = 0; i < gb_size; ++i)
     {
-        if (garbage_collector[i]->free == 0 && strcmp(garbage_collector[i]->name, name) == 0)
+        Object *object = garbage_collector[i];
+        if (object != NULL && object->is_live == 1 && strcmp(object->name, name) == 0)
         {
             return 1;
         }
@@ -109,39 +43,18 @@ int duplicate(const char *name)
     return 0;
 }
 
-
-int include(My_List* list, char* name){
-    Block* iter = list->head;
-    while (iter != NULL){
-        if (strcmp(iter->name, name) == 0){
-            return 1;
-        }
-        iter = iter->next;
-    }
-    return 0;
-}
-
-
 int create(int size, int num_pages)
 {
     if (garbage_collector == NULL && size > 0)
     {
-        garbage_collector = (Obj**)malloc(size * sizeof(Obj*));
+        garbage_collector = (Object**)malloc(size * sizeof(Object*));
         if (garbage_collector == NULL) {
             return 0;
         }
         gb_size = size;
         for (int i = 0; i < size; ++i)
         {
-            Obj* obj = (Obj*)malloc(sizeof(Obj));
-            if (obj == NULL) {
-                return 0;
-            }
-            obj->free = 1;
-            obj->root = 0;
-            obj->name = NULL;
-            obj->links = NULL;
-            garbage_collector[i] = obj;
+            garbage_collector[i] = NULL;
         }
         return 1;
     }
@@ -154,13 +67,12 @@ int destroy()
     {
         for (int i = 0; i < gb_size; ++i)
         {
-            Obj* obj = garbage_collector[i];
+            Object* object = garbage_collector[i];
             garbage_collector[i] = NULL;
-            delete_list(obj->links);
-            obj->links = NULL;
-            free(obj->name);
-            obj->name = NULL;
-            free(obj);
+            if (object) {
+                free(object->name);
+                free(object);
+            }
         }
         free(garbage_collector);
         garbage_collector = NULL;
@@ -170,20 +82,41 @@ int destroy()
     return 0;
 }
 
+Object* create_empty_object(const char *name)
+{
+    Object *object = (Object*)malloc(sizeof(Object));
+    object->name = strdup(name);
+    
+    object->is_live = 0;
+    object->is_root = 0;
+    
+    object->next = NULL;
+    object->prev = NULL;
+    
+    object->head = NULL;
+    object->tail = NULL;
+    
+    return object;
+}
+
 int create_object(const char *name)
 {
     int max_size = 32;
-    if (strlen(name) > max_size) 
+    if (strlen(name) > max_size)
     {
         return 0;
     }
     for (int i = 0; i < gb_size; ++i)
     {
-        if (garbage_collector[i]->free == 1 && duplicate(name) == 0)
+        Object *object = garbage_collector[i];
+        if (object != NULL && strcmp(object->name, name) == 0) 
         {
-            garbage_collector[i]->name = strdup(name);
-            garbage_collector[i]->links = create_list_v2(name);
-            garbage_collector[i]->free = 0;
+            return 0;
+        }
+        if (object == NULL)
+        {
+            Object *object = create_empty_object(name);
+            garbage_collector[i] = object;
             return 1;
         }
     }
@@ -194,37 +127,13 @@ int destroy_object(const char *name)
 {
     for (int i = 0; i < gb_size; i++)
     {
-        if (garbage_collector[i]->free == 0)
+        Object *object = garbage_collector[i];
+        if ((object != NULL) && strcmp(name, object->name) == 0)
         {
-            if (strcmp(name, garbage_collector[i]->name) == 0)
-            {
-                delete_list(garbage_collector[i]->links);
-                free(garbage_collector[i]->name);
-                garbage_collector[i]->name = NULL;
-                garbage_collector[i]->free = 1;
-                return 1;
-            }
-            if (garbage_collector[i]->links != NULL)
-            {
-                My_List *links = garbage_collector[i]->links;
-                Block *head = links->head;
-                while (head)
-                {
-                    Block *next = head->next;
-                    if (strcmp(head->name, name) == 0)
-                    {
-                        free(head->name);
-                        head->name = NULL;
-                        head->prev->next = next;
-                        next->prev = head->prev;
-                        head->next = NULL;
-                        head->prev = NULL;
-                        free(head);
-                        return 1;
-                    }
-                    head = next;
-                }
-            }
+            free(object->name);
+            free(object);
+            garbage_collector[i] = 0;
+            return 1;
         }
     }
     return 0;
@@ -232,58 +141,55 @@ int destroy_object(const char *name)
 
 void print_objects()
 {
-    int num = 0;
-    for (int i = 0; i < gb_size; ++i)
-    {
-        if (garbage_collector[i]->free == 0 )
-        {
-            num++;
-        }
-    }
-    Obj **arr = (Obj**)malloc(sizeof(Obj *) * num);
-    int j = 0;
-    for (int i = 0; i < gb_size; i++)
-    {
-        if (garbage_collector[i]->free == 0)
-        {
-            arr[j] = garbage_collector[i];
-            j++;
-        }
-    }
-    Obj* t;
-    for (int i = 0; i < num; i++)
-    {
-        for (int j = 0; j < num - 1; j++)
-        {
-            if (strcmp(arr[j]->name, arr[j + 1]->name) == 1)
-            {
-                t = arr[j];
-                arr[j] = arr[j + 1];
-                arr[j + 1] = t;
-            }
-        }
-    }
-
-    
-
-    for (int i = 0; i < num; ++i)
-    {
-        printf("%s\n", arr[i]->name);
-    }
-    free(arr);
-    printf("\n");
+//    int num = 0;
+//    for (int i = 0; i < gb_size; ++i)
+//    {
+//        if (garbage_collector[i]->free == 0 )
+//        {
+//            num++;
+//        }
+//    }
+//    Object **arr = (Object**)malloc(sizeof(Object *) * num);
+//    int j = 0;
+//    for (int i = 0; i < gb_size; i++)
+//    {
+//        if (garbage_collector[i]->free == 0)
+//        {
+//            arr[j] = garbage_collector[i];
+//            j++;
+//        }
+//    }
+//    Object* t;
+//    for (int i = 0; i < num; i++)
+//    {
+//        for (int j = 0; j < num - 1; j++)
+//        {
+//            if (strcmp(arr[j]->name, arr[j + 1]->name) == 1)
+//            {
+//                t = arr[j];
+//                arr[j] = arr[j + 1];
+//                arr[j + 1] = t;
+//            }
+//        }
+//    }
+//    for (int i = 0; i < num; ++i)
+//    {
+//        printf("%s\n", arr[i]->name);
+//    }
+//    free(arr);
+//    printf("\n");
 }
 
 int set_root(const char* name)
 {
-    for (int i = 0; i < gb_size; ++i)
-    {
-        if (garbage_collector[i]->free == 0 && strcmp(name, garbage_collector[i]->name) == 0)
-        {
-            garbage_collector[i]->root = 1;
-            return 1;
-        }
-    }
+//    for (int i = 0; i < gb_size; ++i)
+//    {
+//        if (garbage_collector[i]->free == 0 && strcmp(name, garbage_collector[i]->name) == 0)
+//        {
+//            garbage_collector[i]->root = 1;
+//            return 1;
+//        }
+//    }
     return 0;
 }
 
@@ -302,66 +208,66 @@ int link(const char* object1_name, const char* object2_name)
 
 void collect_live_objects(void)
 {
-    My_List* list = create_list();
-    for (int i = 0; i < gb_size; ++i)
-    {
-        if (garbage_collector[i]->free == 0 && garbage_collector[i]->root)
-        {
-            Add_Block(list, garbage_collector[i]->name);
-            Block* item = garbage_collector[i]->links->head;
-            while (item != NULL)
-            {
-                if (item->name != NULL)
-                {
-                    Add_Block(list, item->name);
-                    for (int j = 0; j < gb_size; ++j)
-                    {
-                        if (garbage_collector[j]->free == 0 && strcmp(item->name, garbage_collector[j]->name) == 0)
-                        {
-                            Block* iter = garbage_collector[j]->links->head;
-                            while (iter!=0)
-                            {
-                                if(iter->name != NULL && include(list, iter->name) == 1)
-                                {
-                                    Add_Block(list, iter->name);
-                                }
-                                iter = iter->next;
-                            }
-                            
-                        }
-                    }
-                }
-                item = item->next;
-            }
-        }
-    }
-    
-
-    int size = 0;
-    Block* head = list->head;
-    while (head != NULL)
-    {
-        size += 1;
-        head = head->next;
-    }
-
-    char** arr = (char**)malloc(sizeof(char*) * size);
-    Block* item = list->head;
-    for (int i = 0; i < size; ++i)
-    {
-        arr[i] = item->name;
-        item = item->next;
-    }
-    qsort(arr, size, sizeof(arr[0]), cmp);
-    for (int i = 0; i != size; ++i)
-    {
-        printf("%s\n", arr[i]);
-    }
-    free(arr);
-    arr = NULL;
-    
-//    delete_list(&list);
-    printf("\n");
+//    My_List* list = create_list();
+//    for (int i = 0; i < gb_size; ++i)
+//    {
+//        if (garbage_collector[i]->free == 0 && garbage_collector[i]->root)
+//        {
+//            Add_Block(list, garbage_collector[i]->name);
+//            Block* item = garbage_collector[i]->links->head;
+//            while (item != NULL)
+//            {
+//                if (item->name != NULL)
+//                {
+//                    Add_Block(list, item->name);
+//                    for (int j = 0; j < gb_size; ++j)
+//                    {
+//                        if (garbage_collector[j]->free == 0 && strcmp(item->name, garbage_collector[j]->name) == 0)
+//                        {
+//                            Block* iter = garbage_collector[j]->links->head;
+//                            while (iter!=0)
+//                            {
+//                                if(iter->name != NULL && include(list, iter->name) == 1)
+//                                {
+//                                    Add_Block(list, iter->name);
+//                                }
+//                                iter = iter->next;
+//                            }
+//                            
+//                        }
+//                    }
+//                }
+//                item = item->next;
+//            }
+//        }
+//    }
+//    
+//
+//    int size = 0;
+//    Block* head = list->head;
+//    while (head != NULL)
+//    {
+//        size += 1;
+//        head = head->next;
+//    }
+//
+//    char** arr = (char**)malloc(sizeof(char*) * size);
+//    Block* item = list->head;
+//    for (int i = 0; i < size; ++i)
+//    {
+//        arr[i] = item->name;
+//        item = item->next;
+//    }
+//    qsort(arr, size, sizeof(arr[0]), cmp);
+//    for (int i = 0; i != size; ++i)
+//    {
+//        printf("%s\n", arr[i]);
+//    }
+//    free(arr);
+//    arr = NULL;
+//    
+////    delete_list(&list);
+//    printf("\n");
 }
 
 
