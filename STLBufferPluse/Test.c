@@ -204,21 +204,27 @@ int destroy_object(const char *name)
                 garbage_collector[i]->free = 1;
                 return 1;
             }
-                // надо ли это делать ???
-//            if (garbage_collector[i]->links != NULL)
-//            {
-//                Block *head = garbage_collector[i]->links->head;
-//                while (head)
-//                {
-//                    Block *next = head->next;
-//                    if (strcmp(head->name, name) == 0)
-//                    {
-//                        free(head->name);
-//                        head->name = NULL;
-//                    }
-//                    head = next;
-//                }
-//            }
+            if (garbage_collector[i]->links != NULL)
+            {
+                My_List *links = garbage_collector[i]->links;
+                Block *head = links->head;
+                while (head)
+                {
+                    Block *next = head->next;
+                    if (strcmp(head->name, name) == 0)
+                    {
+                        free(head->name);
+                        head->name = NULL;
+                        head->prev->next = next;
+                        next->prev = head->prev;
+                        head->next = NULL;
+                        head->prev = NULL;
+                        free(head);
+                        return 1;
+                    }
+                    head = next;
+                }
+            }
         }
     }
     return 0;
