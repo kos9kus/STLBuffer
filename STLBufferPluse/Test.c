@@ -131,7 +131,7 @@ int create(int size, int num_pages)
 
 int destroy()
 {
-    if (garbage_collector != NULL)
+    if (garbage_collector)
     {
         for (int i = 0; i < MAX_NUM; ++i)
         {
@@ -185,6 +185,7 @@ int destroy_object(const char *name)
                 garbage_collector[i]->name = NULL;
                 garbage_collector[i]->free = 1;
                 garbage_collector[i]->root = 0;
+                garbage_collector[i]->links = NULL;
                 return 1;
             }
 
@@ -211,7 +212,7 @@ void _alphabet_sort(char **objects, int size) {
     
     for(int i = 0; i < size; i++)
     {
-        for(int j = 0; objects[j]; j++)
+        for(int j = 0; j < size - 1; j++)
         {
             if(strcmp(objects[i], objects[j]) < 0)
             {
