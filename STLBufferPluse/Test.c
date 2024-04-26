@@ -281,7 +281,6 @@ int link(const char* object1_name, const char* object2_name)
                 ++size;
                 head = head->next;
             }
-                
             if (size > 32)
             {
                 return 0;
