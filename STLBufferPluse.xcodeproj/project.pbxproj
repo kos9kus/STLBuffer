@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		83A0721F2BD709F90012DD0E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 83A0721E2BD709F90012DD0E /* main.c */; };
-		83F09FF52BDC1C3F006EF640 /* Test1.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 83F09FF42BDC1C3F006EF640 /* Test1.cpp */; };
+		83F09FF72BDC4224006EF640 /* Test.c in Sources */ = {isa = PBXBuildFile; fileRef = 83077D122BD714B000915030 /* Test.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -28,11 +28,8 @@
 		83077D122BD714B000915030 /* Test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Test.c; sourceTree = "<group>"; };
 		83077D142BD7174000915030 /* Task.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Task.md; sourceTree = "<group>"; };
 		83077D152BD7174800915030 /* 26_2_06main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 26_2_06main.cpp; sourceTree = "<group>"; };
-		83077D192BDAC19900915030 /* 26_2_06task.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 26_2_06task.cpp; sourceTree = "<group>"; };
 		83A0721B2BD709F90012DD0E /* STLBufferPluse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = STLBufferPluse; sourceTree = BUILT_PRODUCTS_DIR; };
 		83A0721E2BD709F90012DD0E /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		83F09FF42BDC1C3F006EF640 /* Test1.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Test1.cpp; sourceTree = "<group>"; };
-		83F09FF62BDC1C51006EF640 /* Test1.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Test1.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,7 +48,6 @@
 			children = (
 				83077D142BD7174000915030 /* Task.md */,
 				83077D152BD7174800915030 /* 26_2_06main.cpp */,
-				83077D192BDAC19900915030 /* 26_2_06task.cpp */,
 				83A0721D2BD709F90012DD0E /* STLBufferPluse */,
 				83A0721C2BD709F90012DD0E /* Products */,
 			);
@@ -68,8 +64,6 @@
 		83A0721D2BD709F90012DD0E /* STLBufferPluse */ = {
 			isa = PBXGroup;
 			children = (
-				83F09FF62BDC1C51006EF640 /* Test1.h */,
-				83F09FF42BDC1C3F006EF640 /* Test1.cpp */,
 				83A0721E2BD709F90012DD0E /* main.c */,
 				83077D112BD714B000915030 /* Test.h */,
 				83077D122BD714B000915030 /* Test.c */,
@@ -134,7 +128,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				83F09FF52BDC1C3F006EF640 /* Test1.cpp in Sources */,
+				83F09FF72BDC4224006EF640 /* Test.c in Sources */,
 				83A0721F2BD709F90012DD0E /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

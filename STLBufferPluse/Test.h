@@ -2,11 +2,11 @@
 //  Test.h
 //  STLBufferPluse
 //
-//  Created by Kos on 23.04.2024.
+//  Created by Kos on 26.04.2024.
 //
 
-#ifndef Test_h
-#define Test_h
+#ifndef Test1_h
+#define Test1_h
 
 #include <stdio.h>
 
@@ -159,4 +159,5 @@ typedef struct
 
 void setup_memory_manager(memory_manager_t* mm);
 
-#endif /* Test_h */
+
+#endif /* Test1_h */
