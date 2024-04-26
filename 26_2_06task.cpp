@@ -1,15 +1,6 @@
-//
-//  TestDim.cpp
-//  STLBufferPluse
-//
-//  Created by Kos on 25.04.2024.
-//
-
-#include <string.h>
 #include <stdlib.h>
-#include "Test.h"
-
-typedef struct Block Block;
+#include <string.h>
+#include <memory.h>
 
 struct Block
 {
@@ -18,11 +9,12 @@ struct Block
     Block* prev;
 }typedef Block;
 
+
 struct My_List
 {
     Block* head;
     Block* tail;
-}typedef My_List;
+}typedef Spisok;
 
 struct Obj
 {
@@ -32,10 +24,10 @@ struct Obj
     My_List* links;
 }typedef Obj;
 
-Obj** garbage_collector = NULL;
-int gb_size = 0;
 
-My_List* create_list()
+
+
+My_List* createList()
 {
     My_List* list = (My_List*)malloc(sizeof(My_List));
     list->head = NULL;
@@ -43,37 +35,20 @@ My_List* create_list()
     return list;
 }
 
-My_List* create_list_v2(const char *name)
+void deleteList(My_List** list)
 {
-    Block *headBlock = (Block*)malloc(sizeof(Block));
-    headBlock->name = strdup(name);
-    headBlock->next = NULL;
-    headBlock->prev = NULL;
-    
-    My_List *list = (My_List*)malloc(sizeof(My_List));
-    list->head = headBlock;
-    list->tail = NULL;
-    return list;
-}
-
-void delete_list(My_List *list)
-{
-    if (list == NULL) {
-        return;
-    }
-    Block *head = list->head;
+    Block *head = (*list)->head;
+    Block* next = NULL;
     while (head)
     {
-        Block *next = head->next;
+        next = head->next;
         free(head->name);
         head->name = NULL;
-        head->next = NULL;
-        head->prev = NULL;
         free(head);
         head = next;
     }
-    free(list);
-    list = NULL;
+    free(*list);
+    *list = NULL;
 }
 
 void Add_Block(My_List* list, const char* name)
@@ -93,20 +68,27 @@ void Add_Block(My_List* list, const char* name)
     }
 }
 
+
+Obj** garbage_collector = NULL;
+int MAX_NUM = 0;
+
 int cmp(const void *a, const void *b) {
     return strcmp(*(const char **)a, *(const char **)b);
 }
 
-int duplicate(const char *name)
+int duplicat(char* name)
 {
-    for (int i = 0; i < gb_size; ++i)
+    int flag = 0;
+    for (int i = 0; i < MAX_NUM; ++i)
     {
         if (garbage_collector[i]->free == 0 && strcmp(garbage_collector[i]->name, name) == 0)
         {
-            return 1;
+            flag = 1;
+            break;
         }
     }
-    return 0;
+    free(name);
+    return flag;
 }
 
 
@@ -116,73 +98,60 @@ int include(My_List* list, char* name){
         if (strcmp(iter->name, name) == 0){
             return 1;
         }
-        iter = iter->next;
+        iter = iter->next;    
     }
     return 0;
 }
 
 
-int create(int size, int num_pages)
+int my_create(int size, int num_pages)
 {
     if (garbage_collector == NULL && size > 0)
     {
-        garbage_collector = (Obj**)malloc(size * sizeof(Obj*));
-        if (garbage_collector == NULL) {
-            return 0;
-        }
-        gb_size = size;
+        garbage_collector = (Obj**)malloc(sizeof(Obj*) * size);
+        MAX_NUM = size;
         for (int i = 0; i < size; ++i)
         {
-            Obj* obj = (Obj*)malloc(sizeof(Obj));
-            if (obj == NULL) {
-                return 0;
-            }
-            obj->free = 1;
-            obj->root = 0;
-            obj->name = NULL;
-            obj->links = NULL;
-            garbage_collector[i] = obj;
+            garbage_collector[i] = (Obj*)malloc(sizeof(Obj));
+            garbage_collector[i]->free = 1;
+            garbage_collector[i]->root = 0;
+            garbage_collector[i]->name = NULL;
+            garbage_collector[i]->links = NULL;
         }
         return 1;
     }
     return 0;
 }
 
-int destroy()
+int my_destroy()
 {
     if (garbage_collector != NULL)
     {
-        for (int i = 0; i < gb_size; ++i)
+        for (int i = 0; i < MAX_NUM; ++i)
         {
-            Obj* obj = garbage_collector[i];
+            if (garbage_collector[i]->free == 0)
+            {
+                deleteList(&garbage_collector[i]->links);
+                free(garbage_collector[i]->name);
+            }
+            free(garbage_collector[i]);
             garbage_collector[i] = NULL;
-            delete_list(obj->links);
-            obj->links = NULL;
-            free(obj->name);
-            obj->name = NULL;
-            free(obj);
         }
         free(garbage_collector);
         garbage_collector = NULL;
-        gb_size = 0;
         return 1;
     }
     return 0;
 }
 
-int create_object(const char *name)
+int create_object(const char* name)
 {
-    int max_size = 32;
-    if (strlen(name) > max_size)
+    for (int i = 0; i < MAX_NUM; ++i)
     {
-        return 0;
-    }
-    for (int i = 0; i < gb_size; ++i)
-    {
-        if (garbage_collector[i]->free == 1 && duplicate(name) == 0)
+        if (garbage_collector[i]->free == 1 && duplicat(strdup(name)) == 0)
         {
             garbage_collector[i]->name = strdup(name);
-            garbage_collector[i]->links = create_list_v2(name);
+            garbage_collector[i]->links = createList();
             garbage_collector[i]->free = 0;
             return 1;
         }
@@ -192,15 +161,31 @@ int create_object(const char *name)
 
 int destroy_object(const char *name)
 {
-    for (int i = 0; i < gb_size; i++)
-    {
-        if (garbage_collector[i]->free == 0 && strcmp(name, garbage_collector[i]->name) == 0)
+    for (int i = 0; i < MAX_NUM; i++)
+    {   
+        if (garbage_collector[i]->free == 0)
         {
-            delete_list(garbage_collector[i]->links);
-            free(garbage_collector[i]->name);
-            garbage_collector[i]->name = NULL;
-            garbage_collector[i]->free = 1;
-            return 1;
+            if (strcmp(name, garbage_collector[i]->name)==0)
+            {
+                deleteList(&garbage_collector[i]->links);
+                free(garbage_collector[i]->name);
+                garbage_collector[i]->name = NULL;
+                garbage_collector[i]->free = 1;
+                return 1;
+            }
+            if (garbage_collector[i]->links != NULL)
+            {
+                Block *iter = garbage_collector[i]->links->head;            
+                while (iter != NULL)
+                {
+                    if (strcmp(iter->name, name)==0)
+                    {
+                        free(iter->name);
+                        iter->name = NULL;
+                    }
+                    iter = iter->next;
+                }
+            }
         }
     }
     return 0;
@@ -209,7 +194,7 @@ int destroy_object(const char *name)
 void print_objects()
 {
     int num = 0;
-    for (int i = 0; i < gb_size; ++i)
+    for (int i = 0; i < MAX_NUM; ++i)
     {
         if (garbage_collector[i]->free == 0 )
         {
@@ -218,7 +203,7 @@ void print_objects()
     }
     Obj **arr = (Obj**)malloc(sizeof(Obj *) * num);
     int j = 0;
-    for (int i = 0; i < gb_size; i++)
+    for (int i = 0; i < MAX_NUM; i++)
     {
         if (garbage_collector[i]->free == 0)
         {
@@ -239,6 +224,9 @@ void print_objects()
             }
         }
     }
+
+    
+
     for (int i = 0; i < num; ++i)
     {
         printf("%s\n", arr[i]->name);
@@ -249,7 +237,7 @@ void print_objects()
 
 int set_root(const char* name)
 {
-    for (int i = 0; i < gb_size; ++i)
+    for (int i = 0; i < MAX_NUM; ++i)
     {
         if (garbage_collector[i]->free == 0 && strcmp(name, garbage_collector[i]->name) == 0)
         {
@@ -262,21 +250,21 @@ int set_root(const char* name)
 
 int link(const char* object1_name, const char* object2_name)
 {
-//    for (int i = 0; i < gb_size; ++i)
-//    {
-//        if (garbage_collector[i]->free == 0 && strcmp(object1_name, garbage_collector[i]->name) == 0 && duplicat(strdup(object2_name)) != 0)
-//        {
-//            Add_Block(garbage_collector[i]->links, object2_name);
-//            return 1;
-//        }
-//    }
+    for (int i = 0; i < MAX_NUM; ++i)
+    {
+        if (garbage_collector[i]->free == 0 && strcmp(object1_name, garbage_collector[i]->name) == 0 && duplicat(strdup(object2_name)) != 0)
+        {
+            Add_Block(garbage_collector[i]->links, object2_name);
+            return 1;
+        }
+    }
     return 0;
 }
 
 void collect_live_objects(void)
 {
-    My_List* list = create_list();
-    for (int i = 0; i < gb_size; ++i)
+    My_List* list = createList();
+    for (int i = 0; i < MAX_NUM; ++i)
     {
         if (garbage_collector[i]->free == 0 && garbage_collector[i]->root)
         {
@@ -287,7 +275,7 @@ void collect_live_objects(void)
                 if (item->name != NULL)
                 {
                     Add_Block(list, item->name);
-                    for (int j = 0; j < gb_size; ++j)
+                    for (int j = 0; j < MAX_NUM; ++j)
                     {
                         if (garbage_collector[j]->free == 0 && strcmp(item->name, garbage_collector[j]->name) == 0)
                         {
@@ -333,15 +321,15 @@ void collect_live_objects(void)
     free(arr);
     arr = NULL;
     
-//    delete_list(&list);
+    deleteList(&list);
     printf("\n");
 }
 
 
 void setup_memory_manager(memory_manager_t* mm)
 {
-    mm->create = create;
-    mm->destroy = destroy;
+    mm->create = my_create;
+    mm->destroy = my_destroy;
     mm->create_object = create_object;
     mm->destroy_object = destroy_object;
     mm->print_objects = print_objects;
@@ -349,4 +337,3 @@ void setup_memory_manager(memory_manager_t* mm)
     mm->link = link;
     mm->collect_live_objects = collect_live_objects;
 }
-

@@ -118,6 +118,8 @@ int create_object(const char *name)
             Object *object = create_empty_object(name);
             garbage_collector[i] = object;
             return 1;
+        } else {
+            object->name = strdup(name);
         }
     }
     return 0;
@@ -131,8 +133,7 @@ int destroy_object(const char *name)
         if ((object != NULL) && strcmp(name, object->name) == 0)
         {
             free(object->name);
-            free(object);
-            garbage_collector[i] = 0;
+            object->is_live = 0;
             return 1;
         }
     }
