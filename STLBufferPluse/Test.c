@@ -302,20 +302,11 @@ int link(const char* object1_name, const char* object2_name)
 void _collect_live_objects_recursive(My_List *list, Block *head) {
     while (head)
     {
-        if (head->name != NULL)
+        if (head->name != NULL && _include(list, head->name) == 0)
         {
-            if(_include(list, head->name) == 0)
-            {
-                _add_block(list, head->name);
-            }
-            
-            for (int j = 0; j < MAX_NUM; ++j)
-            {
-                if (garbage_collector[j]->free == 0 && strcmp(head->name, garbage_collector[j]->name) == 0)
-                {
-                    _collect_live_objects_recursive(list, garbage_collector[j]->links->head);
-                }
-            }
+            _add_block(list, head->name);
+            Obj *object = _get_existed_object(head->name);
+            _collect_live_objects_recursive(list, object->links->head);
         }
         head = head->next;
     }
@@ -329,7 +320,7 @@ void collect_live_objects(void)
         if (garbage_collector[i]->free == 0 && garbage_collector[i]->root == 1)
         {
             Obj *live_object = garbage_collector[i];
-            _add_block(list, garbage_collector[i]->name);
+            _add_block(list, live_object->name);
             _collect_live_objects_recursive(list, live_object->links->head);
         }
     }
