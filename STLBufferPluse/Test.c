@@ -67,7 +67,7 @@ void _add_block(My_List* list, const char* name)
     item->next = NULL;
     item->prev = NULL;
     
-    if (!list->head)
+    if (list->head == NULL)
     {
         list->head = item;
         list->tail = item;
@@ -83,16 +83,16 @@ void _add_block(My_List* list, const char* name)
 Obj **garbage_collector = NULL;
 int MAX_NUM = 0;
 
-int _is_free(const char *name)
+Obj* _get_existed_object(const char *name)
 {
     for (int i = 0; i < MAX_NUM; ++i)
     {
         if (garbage_collector[i]->free == 0 && strcmp(garbage_collector[i]->name, name) == 0)
         {
-            return 0;
+            return garbage_collector[i];
         }
     }
-    return 1;
+    return NULL;
 }
 
 
@@ -161,7 +161,7 @@ int create_object(const char* name)
     }
     for (int i = 0; i < MAX_NUM; ++i)
     {
-        if (garbage_collector[i]->free == 1 && _is_free(name) == 1)
+        if (garbage_collector[i]->free == 1 && _get_existed_object(name) == NULL)
         {
             garbage_collector[i]->name = strdup(name);
             garbage_collector[i]->links = _create_list();
@@ -189,19 +189,21 @@ int destroy_object(const char *name)
                 return 1;
             }
 
-//            if (garbage_collector[i]->links != NULL) ???
-//            {
-//                Block *iter = garbage_collector[i]->links->head;
-//                while (iter)
-//                {
-//                    if (strcmp(iter->name, name)==0)
-//                    {
-//                        free(iter->name);
-//                        iter->name = NULL;
-//                    }
-//                    iter = iter->next;
-//                }
-//            }
+            if (garbage_collector[i]->links != NULL)
+            {
+                Block *block = garbage_collector[i]->links->head;
+                while (block)
+                {
+                    if (block->name) {
+                        if (strcmp(block->name, name) == 0)
+                        {
+                            free(block->name);
+                            block->name = NULL;
+                        }
+                    }
+                    block = block->next;
+                }
+            }
         }
     }
     return 0;
@@ -269,13 +271,15 @@ int set_root(const char* name)
 
 int link(const char* object1_name, const char* object2_name)
 {
-    int max_links_size = 32;
+    int max_links_size = 16;
     for (int i = 0; i < MAX_NUM; ++i)
     {
-        if (_is_free(object1_name) == 0  && _is_free(object2_name) == 0)
+        Obj *object1 = _get_existed_object(object1_name);
+        Obj *object2 = _get_existed_object(object2_name);
+        if (object1 != NULL  && object2 != NULL)
         {
             int size = 0;
-            Block *head = garbage_collector[i]->links->head;
+            Block *head = object1->links->head;
             while (head)
             {
                 ++size;
@@ -287,7 +291,7 @@ int link(const char* object1_name, const char* object2_name)
             }
             else
             {
-                _add_block(garbage_collector[i]->links, object2_name);
+                _add_block(object1->links, object2_name);
                 return 1;
             }
         }
@@ -300,28 +304,38 @@ void collect_live_objects(void)
     My_List *list = _create_list();
     for (int i = 0; i < MAX_NUM; ++i)
     {
-        if (garbage_collector[i]->free == 0 && garbage_collector[i]->root)
+        if (garbage_collector[i]->free == 0 && garbage_collector[i]->root == 1)
         {
+            Obj *live_object = garbage_collector[i];
             _add_block(list, garbage_collector[i]->name);
-            Block* item = garbage_collector[i]->links->head;
+            
+            Block* item = live_object->links->head;
             while (item)
             {
-                _add_block(list, item->name);
-                
-                for (int j = 0; j < MAX_NUM; ++j)
+                if (item->name != NULL) 
                 {
-                    if (garbage_collector[j]->free == 0 && strcmp(item->name, garbage_collector[j]->name) == 0)
+                    if(_include(list, item->name) == 0)
                     {
-                        Block* iter = garbage_collector[j]->links->head;
-                        while (iter)
+                        _add_block(list, item->name);
+                    }
+                    
+                    for (int j = 0; j < MAX_NUM; ++j)
+                    {
+                        if (garbage_collector[j]->free == 0 && strcmp(item->name, garbage_collector[j]->name) == 0)
                         {
-                            if(_include(list, iter->name))
+                            Block* iter = garbage_collector[j]->links->head;
+                            while (iter)
                             {
-                                _add_block(list, iter->name);
+                                if (iter->name != NULL) 
+                                {
+                                    if(_include(list, iter->name) == 0)
+                                    {
+                                        _add_block(list, iter->name);
+                                    }
+                                }
+                                iter = iter->next;
                             }
-                            iter = iter->next;
                         }
-                        
                     }
                 }
                 item = item->next;
