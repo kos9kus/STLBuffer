@@ -299,6 +299,28 @@ int link(const char* object1_name, const char* object2_name)
     return 0;
 }
 
+void _collect_live_objects_recursive(My_List *list, Block *head) {
+    while (head)
+    {
+        if (head->name != NULL)
+        {
+            if(_include(list, head->name) == 0)
+            {
+                _add_block(list, head->name);
+            }
+            
+            for (int j = 0; j < MAX_NUM; ++j)
+            {
+                if (garbage_collector[j]->free == 0 && strcmp(head->name, garbage_collector[j]->name) == 0)
+                {
+                    _collect_live_objects_recursive(list, garbage_collector[j]->links->head);
+                }
+            }
+        }
+        head = head->next;
+    }
+}
+
 void collect_live_objects(void)
 {
     My_List *list = _create_list();
@@ -308,38 +330,7 @@ void collect_live_objects(void)
         {
             Obj *live_object = garbage_collector[i];
             _add_block(list, garbage_collector[i]->name);
-            
-            Block* item = live_object->links->head;
-            while (item)
-            {
-                if (item->name != NULL) 
-                {
-                    if(_include(list, item->name) == 0)
-                    {
-                        _add_block(list, item->name);
-                    }
-                    
-                    for (int j = 0; j < MAX_NUM; ++j)
-                    {
-                        if (garbage_collector[j]->free == 0 && strcmp(item->name, garbage_collector[j]->name) == 0)
-                        {
-                            Block* iter = garbage_collector[j]->links->head;
-                            while (iter)
-                            {
-                                if (iter->name != NULL) 
-                                {
-                                    if(_include(list, iter->name) == 0)
-                                    {
-                                        _add_block(list, iter->name);
-                                    }
-                                }
-                                iter = iter->next;
-                            }
-                        }
-                    }
-                }
-                item = item->next;
-            }
+            _collect_live_objects_recursive(list, live_object->links->head);
         }
     }
     
